@@ -48,7 +48,7 @@ const TodoFormSchema = z.object({
   deadline: z.date().nullable(),
 })
 
-function TodoFormComponent() {
+export function TodoFormComponent() {
   const form = useForm<z.infer<typeof TodoFormSchema>>({
     resolver: zodResolver(TodoFormSchema),
     defaultValues: {
@@ -149,7 +149,7 @@ function TodoFormComponent() {
           />
           <Button type="submit">
             <CirclePlusIcon className="size-5" />
-            <span>Add task</span>
+            <span>Add</span>
           </Button>
         </div>
       </form>
