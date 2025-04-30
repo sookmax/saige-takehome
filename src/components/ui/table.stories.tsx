@@ -4,6 +4,7 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
@@ -22,17 +23,19 @@ import { getPageIndices } from '@/lib/pagination'
 import { Button } from './button'
 import { cn } from '@/lib/utils'
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
+import { Checkbox } from './checkbox'
+import { Label } from './label'
 
 const meta: Meta = {
   title: 'Table',
   parameters: {
-    layout: 'centered',
+    // layout: 'centered',
   },
   decorators: [
     (Story) => (
-      <div className="w-[500px]">
-        <Story />
-      </div>
+      //   <div className="w-screen">
+      <Story />
+      //   </div>
     ),
   ],
 }
@@ -47,8 +50,8 @@ for (let i = 0; i < 100; i++) {
     text: `Task ${i}`,
     deadline:
       Math.random() > 0.5
-        ? Date.now() + 86400000 * i
-        : Date.now() - 86400000 * i,
+        ? Date.now() + 86400000 * (i % 5)
+        : Date.now() - 86400000 * (i % 5),
     done: Math.random() > 0.5,
   })
 }
@@ -79,6 +82,36 @@ const columns: ColumnDef<ToDo>[] = [
         rowB.getValue<ToDo['deadline']>('deadline')
       )
     },
+    filterFn: (row, _columnId, filterValue) => {
+      const date = new Date(row.getValue<ToDo['deadline']>('deadline'))
+      date.setHours(0, 0, 0, 0)
+
+      const duration = intervalToDuration({
+        start: TODAY_MIDNIGHT,
+        end: date,
+      })
+
+      const isOverdue = date < TODAY_MIDNIGHT
+      const isDueIn3Days =
+        duration.years === undefined &&
+        duration.months === undefined &&
+        duration.days !== undefined &&
+        duration.days > -1 &&
+        duration.days <= 3
+      const isDueIn4PlusDays = duration.days !== undefined && duration.days > 3
+
+      let isMatch = false
+      if (filterValue.includes('overdue')) {
+        isMatch = isMatch || isOverdue
+      }
+      if (filterValue.includes('in-3-days')) {
+        isMatch = isMatch || isDueIn3Days
+      }
+      if (filterValue.includes('in-4-plus-days')) {
+        isMatch = isMatch || isDueIn4PlusDays
+      }
+      return isMatch
+    },
     accessorFn: ({ done, deadline }) => {
       const date = new Date(deadline)
       date.setHours(0, 0, 0, 0)
@@ -105,6 +138,17 @@ const columns: ColumnDef<ToDo>[] = [
   {
     accessorKey: 'done',
     header: 'Status',
+    filterFn: (row, _columnId, filterValue) => {
+      const done = row.getValue<ToDo['done']>('done')
+      let isMatch = false
+      if (filterValue.includes('done')) {
+        isMatch = isMatch || done
+      }
+      if (filterValue.includes('in-progress')) {
+        isMatch = isMatch || !done
+      }
+      return isMatch
+    },
     cell: ({ getValue }) => {
       const done = getValue<ToDo['done']>()
       return done ? 'Done' : 'In Progress'
@@ -127,11 +171,28 @@ function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     initialState: {
       pagination: {
         pageIndex: 0,
         pageSize: 10,
       },
+      sorting: [
+        {
+          id: 'time-left',
+          desc: false,
+        },
+      ],
+      columnFilters: [
+        {
+          id: 'time-left',
+          value: ['in-3-days'],
+        },
+        {
+          id: 'done',
+          value: ['in-progress'],
+        },
+      ],
     },
   })
 
@@ -143,95 +204,218 @@ function DataTable<TData, TValue>({
     5
   )
 
+  const timeLeftFilter = table
+    .getState()
+    .columnFilters.find((filter) => filter.id === 'time-left')?.value as
+    | string[]
+    | undefined
+
+  const statusFilter = table
+    .getState()
+    .columnFilters.find((filter) => filter.id === 'done')?.value as
+    | string[]
+    | undefined
+
   return (
-    <div className="flex flex-col space-y-4">
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const canSort = header.column.getCanSort()
-                  const isSorted = header.column.getIsSorted()
-                  const isSortedDesc = isSorted === 'desc'
-                  const isSortedAsc = isSorted === 'asc'
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={cn(
-                            'h-full flex items-center space-x-1.5',
-                            canSort && 'cursor-pointer'
-                          )}
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          <span>
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                          </span>
-                          {!canSort ? null : isSortedAsc ? (
-                            <ArrowUpIcon className="size-4" />
-                          ) : isSortedDesc ? (
-                            <ArrowDownIcon className="size-4" />
-                          ) : (
-                            <ArrowUpDownIcon className="size-4" />
-                          )}
-                        </div>
-                      )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+    <div className="flex space-x-10">
+      <div className="flex flex-col space-y-4">
+        <div className="space-y-10">
+          <div className="space-y-2 text-xs font-medium">
+            <div>Due</div>
+            <div className="flex flex-col space-y-2">
+              {[
+                {
+                  id: 'overdue',
+                  label: 'Overdue',
+                },
+                {
+                  id: 'in-3-days',
+                  label: 'In 3 days',
+                },
+                {
+                  id: 'in-4-plus-days',
+                  label: 'In 4+ days',
+                },
+              ].map(({ id, label }) => (
+                <div key={id} className="flex items-center space-x-1.5">
+                  <Checkbox
+                    id={id}
+                    value={id}
+                    checked={timeLeftFilter?.includes(id) ?? false}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        table
+                          .getColumn('time-left')
+                          ?.setFilterValue((old: string[] | undefined) => {
+                            if (old === undefined) {
+                              return [id]
+                            } else {
+                              return [...old, id]
+                            }
+                          })
+                      } else {
+                        table
+                          .getColumn('time-left')
+                          ?.setFilterValue((old: string[]) => {
+                            const filtered = old.filter((value) => value !== id)
+                            return filtered.length === 0 ? undefined : filtered
+                          })
+                      }
+                    }}
+                  />
+                  <Label htmlFor={id} className="text-xs leading-none">
+                    {label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2 text-xs font-medium">
+            <div>Status</div>
+            <div className="flex flex-col space-y-2">
+              {[
+                {
+                  id: 'in-progress',
+                  label: 'In progress',
+                },
+                {
+                  id: 'done',
+                  label: 'Done',
+                },
+              ].map(({ id, label }) => (
+                <div key={id} className="flex items-center space-x-1.5">
+                  <Checkbox
+                    id={id}
+                    value={id}
+                    checked={statusFilter?.includes(id) ?? false}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        table
+                          .getColumn('done')
+                          ?.setFilterValue((old: string[]) => {
+                            if (old === undefined) {
+                              return [id]
+                            } else {
+                              return [...old, id]
+                            }
+                          })
+                      } else {
+                        table
+                          .getColumn('done')
+                          ?.setFilterValue((old: string[]) => {
+                            const filtered = old.filter((value) => value !== id)
+                            return filtered.length === 0 ? undefined : filtered
+                          })
+                      }
+                    }}
+                  />
+                  <Label htmlFor={id} className="text-xs leading-none">
+                    {label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div>
+          <Button
+            variant="link"
+            className="text-xs p-0"
+            onClick={() => table.resetColumnFilters(true)}
+          >
+            Clear filters
+          </Button>
+        </div>
       </div>
-      <div className="space-x-1 flex justify-center">
-        {pageIndices.map((pageIndex, index) => {
-          return pageIndex === '...' ? (
-            <span key={`ellipsis-${index}`}>...</span>
-          ) : (
-            <Button
-              key={`page-${pageIndex}`}
-              variant={pageIndex === currentPageIndex ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => table.setPageIndex(pageIndex)}
-              className="h-8 w-8"
-            >
-              {pageIndex + 1}
-            </Button>
-          )
-        })}
+      <div className="grow flex flex-col space-y-4">
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const canSort = header.column.getCanSort()
+                    const isSorted = header.column.getIsSorted()
+                    const isSortedDesc = isSorted === 'desc'
+                    const isSortedAsc = isSorted === 'asc'
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={cn(
+                              'h-full flex items-center space-x-1.5',
+                              canSort && 'cursor-pointer'
+                            )}
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            <span>
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </span>
+                            {!canSort ? null : isSortedAsc ? (
+                              <ArrowUpIcon className="size-4" />
+                            ) : isSortedDesc ? (
+                              <ArrowDownIcon className="size-4" />
+                            ) : (
+                              <ArrowUpDownIcon className="size-4" />
+                            )}
+                          </div>
+                        )}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="space-x-1 flex justify-center">
+          {pageIndices.map((pageIndex, index) => {
+            return pageIndex === '...' ? (
+              <span key={`ellipsis-${index}`}>...</span>
+            ) : (
+              <Button
+                key={`page-${pageIndex}`}
+                variant={pageIndex === currentPageIndex ? 'default' : 'outline'}
+                size="icon"
+                onClick={() => table.setPageIndex(pageIndex)}
+                className="h-8 w-8"
+              >
+                {pageIndex + 1}
+              </Button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -247,10 +431,6 @@ export const Default: Story = {
         date > TODAY_MIDNIGHT || date.getTime() === TODAY_MIDNIGHT.getTime()
       )
     })
-    return (
-      <div className="container mx-auto py-10">
-        <DataTable data={data} columns={columns} />
-      </div>
-    )
+    return <DataTable data={data} columns={columns} />
   },
 }
