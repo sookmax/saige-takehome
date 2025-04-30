@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
@@ -12,5 +13,16 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  test: {
+    workspace: [
+      {
+        test: {
+          include: ['tests/**/*.node.test.ts'],
+          name: 'node',
+          environment: 'node',
+        },
+      },
+    ],
   },
 })
