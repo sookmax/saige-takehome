@@ -20,6 +20,7 @@ import { CalendarIcon, CirclePlusIcon, CircleXIcon } from 'lucide-react'
 import { Calendar } from './calendar'
 import { useState } from 'react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { TODAY_MIDNIGHT } from '@/lib/const'
 
 // More on how to set up stories at: https://storybook.js.org/docs/writing-stories#default-export
 const meta: Meta = {
@@ -212,9 +213,6 @@ function TextInputRequiredForm() {
 export const TextInputRequired: Story = {
   render: TextInputRequiredForm,
 }
-
-const TODAY_MIDNIGHT = new Date()
-TODAY_MIDNIGHT.setHours(0, 0, 0, 0)
 
 const DatePickerDaysPastTodayDisabledFormSchema = z.object({
   deadline: z
