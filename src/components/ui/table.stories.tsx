@@ -5,6 +5,7 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
 import {
@@ -15,10 +16,12 @@ import {
   TableHeader,
   TableRow,
 } from './table'
-import { formatDuration, intervalToDuration } from 'date-fns'
+import { format, formatDuration, intervalToDuration } from 'date-fns'
 import { TODAY_MIDNIGHT } from '@/lib/const'
 import { getPageIndices } from '@/lib/pagination'
 import { Button } from './button'
+import { cn } from '@/lib/utils'
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
 
 const meta: Meta = {
   title: 'Table',
@@ -54,6 +57,7 @@ const columns: ColumnDef<ToDo>[] = [
   {
     accessorKey: 'text',
     header: 'Task',
+    enableSorting: false,
   },
   {
     accessorKey: 'deadline',
@@ -63,16 +67,35 @@ const columns: ColumnDef<ToDo>[] = [
       const date = new Date(dateMS)
       date.setHours(0, 0, 0, 0)
 
+      return format(date, 'yyyy-MM-dd')
+    },
+  },
+  {
+    id: 'time-left',
+    header: 'Time Left',
+    sortingFn: (rowA, rowB) => {
+      return (
+        rowA.getValue<ToDo['deadline']>('deadline') -
+        rowB.getValue<ToDo['deadline']>('deadline')
+      )
+    },
+    accessorFn: ({ done, deadline }) => {
+      const date = new Date(deadline)
+      date.setHours(0, 0, 0, 0)
+
       const duration = intervalToDuration({
         start: TODAY_MIDNIGHT,
         end: date,
       })
 
-      const isOverdue = date < TODAY_MIDNIGHT
-      const isDue = date.getTime() === TODAY_MIDNIGHT.getTime()
       const formattedDuration = formatDuration(duration)
 
-      return isOverdue
+      const isOverdue = date < TODAY_MIDNIGHT
+      const isDue = date.getTime() === TODAY_MIDNIGHT.getTime()
+
+      return isOverdue && done
+        ? '-'
+        : isOverdue && !done
         ? 'Overdue'
         : isDue
         ? 'Due Today'
@@ -81,9 +104,10 @@ const columns: ColumnDef<ToDo>[] = [
   },
   {
     accessorKey: 'done',
-    header: 'Done',
-    cell: (info) => {
-      return info.getValue() ? '✔️' : '❌'
+    header: 'Status',
+    cell: ({ getValue }) => {
+      const done = getValue<ToDo['done']>()
+      return done ? 'Done' : 'In Progress'
     },
   },
 ]
@@ -102,6 +126,7 @@ function DataTable<TData, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     initialState: {
       pagination: {
         pageIndex: 0,
@@ -126,14 +151,35 @@ function DataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  const canSort = header.column.getCanSort()
+                  const isSorted = header.column.getIsSorted()
+                  const isSortedDesc = isSorted === 'desc'
+                  const isSortedAsc = isSorted === 'asc'
                   return (
                     <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={cn(
+                            'h-full flex items-center space-x-1.5',
+                            canSort && 'cursor-pointer'
                           )}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <span>
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                          </span>
+                          {!canSort ? null : isSortedAsc ? (
+                            <ArrowUpIcon className="size-4" />
+                          ) : isSortedDesc ? (
+                            <ArrowDownIcon className="size-4" />
+                          ) : (
+                            <ArrowUpDownIcon className="size-4" />
+                          )}
+                        </div>
+                      )}
                     </TableHead>
                   )
                 })}
@@ -192,9 +238,19 @@ function DataTable<TData, TValue>({
 }
 
 export const Default: Story = {
-  render: () => (
-    <div className="container mx-auto py-10">
-      <DataTable data={mockData} columns={columns} />
-    </div>
-  ),
+  render: () => {
+    const data = mockData.filter((row) => {
+      if (!row.done) return true
+      const date = new Date(row.deadline)
+      date.setHours(0, 0, 0, 0)
+      return (
+        date > TODAY_MIDNIGHT || date.getTime() === TODAY_MIDNIGHT.getTime()
+      )
+    })
+    return (
+      <div className="container mx-auto py-10">
+        <DataTable data={data} columns={columns} />
+      </div>
+    )
+  },
 }
