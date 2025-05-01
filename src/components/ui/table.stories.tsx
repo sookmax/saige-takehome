@@ -17,8 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from './table'
-import { format, formatDuration, intervalToDuration } from 'date-fns'
-import { SEARCH_PARAMS, TODAY_MIDNIGHT } from '@/lib/const'
+import { format, formatDuration } from 'date-fns'
+import { AI_GENERATED_TODO_TITLES } from '@/lib/const'
 import { getPageIndices } from '@/lib/pagination'
 import { Button } from './button'
 import { cn } from '@/lib/utils'
@@ -33,6 +33,8 @@ import { Checkbox } from './checkbox'
 import { Label } from './label'
 import { Input } from './input'
 import { useEffect } from 'react'
+import { Badge } from './badge'
+import { DurationFromToday, getDurationFromToday } from '@/lib/duration'
 
 const meta: Meta = {
   title: 'Table',
@@ -42,37 +44,48 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const mockData: ToDo[] = []
-for (let i = 0; i < 100; i++) {
+for (let i = 0; i < 50; i++) {
   mockData.push({
     id: i,
-    text: `Task ${i}`,
+    text: AI_GENERATED_TODO_TITLES[i],
     deadline:
       Math.random() > 0.5
-        ? Date.now() + 86400000 * (i % 5)
+        ? Date.now() + 86400000 * i
         : Date.now() - 86400000 * (i % 5),
     done: Math.random() > 0.5,
   })
+}
+
+const COLUMN_WIDTHS: Record<string, number> = {
+  select: 40,
+  deadline: 120,
+  'time-left': 120,
+  done: 120,
 }
 
 const columns: ColumnDef<ToDo>[] = [
   {
     id: 'select',
     header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
+      <div className="flex items-center justify-center">
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && 'indeterminate')
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      </div>
     ),
     cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
+      <div className="flex items-center justify-center">
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      </div>
     ),
     enableSorting: false,
   },
@@ -81,21 +94,59 @@ const columns: ColumnDef<ToDo>[] = [
     header: 'Task',
     enableSorting: false,
     filterFn: 'includesString',
+    cell: ({ getValue }) => {
+      const text = getValue<ToDo['text']>()
+      return <div className="font-medium truncate">{text}</div>
+    },
   },
   {
     accessorKey: 'deadline',
-    header: 'Deadline',
+    header: 'Due Date',
     cell: ({ getValue }) => {
       const dateMS = getValue<ToDo['deadline']>()
       const date = new Date(dateMS)
-      date.setHours(0, 0, 0, 0)
-
-      return format(date, 'yyyy-MM-dd')
+      return (
+        <div className="text-muted-foreground">
+          {format(date, 'yyyy-MM-dd')}
+        </div>
+      )
     },
   },
   {
     id: 'time-left',
     header: 'Time Left',
+    cell: ({ getValue, row }) => {
+      const done = row.getValue<ToDo['done']>('done')
+      const {
+        isOverdue,
+        isDueToday,
+        isDueIn3Days,
+        isDueIn4PlusDays,
+        duration,
+      } = getValue<DurationFromToday>()
+      return (
+        <div
+          className={cn(
+            'truncate',
+            isOverdue && !done && 'text-destructive',
+            isDueIn3Days && 'text-warning-foreground',
+            isDueIn4PlusDays && 'text-safe-foreground'
+          )}
+        >
+          {isOverdue && done
+            ? '-'
+            : isOverdue && !done
+            ? 'Overdue'
+            : isDueToday
+            ? 'Due today'
+            : `Due in ${formatDuration(duration)}`}
+        </div>
+      )
+    },
+    accessorFn: ({ deadline }) => {
+      const date = new Date(deadline)
+      return getDurationFromToday(date)
+    },
     sortingFn: (rowA, rowB) => {
       return (
         rowA.getValue<ToDo['deadline']>('deadline') -
@@ -104,21 +155,9 @@ const columns: ColumnDef<ToDo>[] = [
     },
     filterFn: (row, _columnId, filterValue: string[]) => {
       const date = new Date(row.getValue<ToDo['deadline']>('deadline'))
-      date.setHours(0, 0, 0, 0)
 
-      const duration = intervalToDuration({
-        start: TODAY_MIDNIGHT,
-        end: date,
-      })
-
-      const isOverdue = date < TODAY_MIDNIGHT
-      const isDueIn3Days =
-        duration.years === undefined &&
-        duration.months === undefined &&
-        duration.days !== undefined &&
-        duration.days > -1 &&
-        duration.days <= 3
-      const isDueIn4PlusDays = duration.days !== undefined && duration.days > 3
+      const { isOverdue, isDueIn3Days, isDueIn4PlusDays } =
+        getDurationFromToday(date)
 
       let isMatch = false
       if (filterValue.includes('overdue')) {
@@ -131,28 +170,6 @@ const columns: ColumnDef<ToDo>[] = [
         isMatch = isMatch || isDueIn4PlusDays
       }
       return isMatch
-    },
-    accessorFn: ({ done, deadline }) => {
-      const date = new Date(deadline)
-      date.setHours(0, 0, 0, 0)
-
-      const duration = intervalToDuration({
-        start: TODAY_MIDNIGHT,
-        end: date,
-      })
-
-      const formattedDuration = formatDuration(duration)
-
-      const isOverdue = date < TODAY_MIDNIGHT
-      const isDue = date.getTime() === TODAY_MIDNIGHT.getTime()
-
-      return isOverdue && done
-        ? '-'
-        : isOverdue && !done
-        ? 'Overdue'
-        : isDue
-        ? 'Due Today'
-        : `Due in ${formattedDuration}`
     },
   },
   {
@@ -171,10 +188,22 @@ const columns: ColumnDef<ToDo>[] = [
     },
     cell: ({ getValue }) => {
       const done = getValue<ToDo['done']>()
-      return done ? 'Done' : 'In Progress'
+      return (
+        <div>
+          {done ? (
+            <Badge className="bg-done text-done-foreground">Done</Badge>
+          ) : (
+            <Badge className="bg-in-progress text-in-progress-foreground">
+              In progress
+            </Badge>
+          )}
+        </div>
+      )
     },
   },
 ]
+
+const SEARCH_PARAMS = new URLSearchParams(window.location.search)
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -232,7 +261,7 @@ function DataTable<TData, TValue>({
 
   const textFilter = columnFilters.find((filter) => filter.id === 'text')
   const textFilterValue = (textFilter?.value ?? '') as string
-  console.log('textFilterValue', textFilterValue)
+
   useEffect(() => {
     if (!textFilterValue) {
       SEARCH_PARAMS.delete('q')
@@ -256,8 +285,8 @@ function DataTable<TData, TValue>({
   const rowsSelected = table.getSelectedRowModel().rows
 
   return (
-    <div className="flex space-x-10">
-      <div className="flex flex-col space-y-4">
+    <div className="flex space-x-10 max-w-[1000px] mx-auto">
+      <div className="shrink-0 flex flex-col space-y-4">
         <div className="space-y-10">
           <div className="space-y-2 text-xs font-medium">
             <div>Due</div>
@@ -413,7 +442,7 @@ function DataTable<TData, TValue>({
           </div>
         </div>
         <div className="rounded-md border">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -423,7 +452,10 @@ function DataTable<TData, TValue>({
                     const isSortedDesc = isSorted === 'desc'
                     const isSortedAsc = isSorted === 'asc'
                     return (
-                      <TableHead key={header.id}>
+                      <TableHead
+                        key={header.id}
+                        style={{ width: COLUMN_WIDTHS[header.id] }}
+                      >
                         {header.isPlaceholder ? null : (
                           <div
                             className={cn(
@@ -432,12 +464,12 @@ function DataTable<TData, TValue>({
                             )}
                             onClick={header.column.getToggleSortingHandler()}
                           >
-                            <span>
+                            <div className={cn(!canSort && 'w-full')}>
                               {flexRender(
                                 header.column.columnDef.header,
                                 header.getContext()
                               )}
-                            </span>
+                            </div>
                             {!canSort ? null : isSortedAsc ? (
                               <ArrowUpIcon className="size-4" />
                             ) : isSortedDesc ? (
@@ -507,14 +539,6 @@ function DataTable<TData, TValue>({
 
 export const Default: Story = {
   render: () => {
-    const data = mockData.filter((row) => {
-      if (!row.done) return true
-      const date = new Date(row.deadline)
-      date.setHours(0, 0, 0, 0)
-      return (
-        date > TODAY_MIDNIGHT || date.getTime() === TODAY_MIDNIGHT.getTime()
-      )
-    })
-    return <DataTable data={data} columns={columns} />
+    return <DataTable data={mockData} columns={columns} />
   },
 }
