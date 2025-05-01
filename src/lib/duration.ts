@@ -25,7 +25,11 @@ export function getDurationFromToday(date: Date) {
       duration.days !== undefined &&
       duration.days > 0 &&
       duration.days <= 3)
-  const isDueIn4PlusDays = duration.days !== undefined && duration.days > 3
+  const isDueIn4PlusDays =
+    duration.years !== undefined ||
+    duration.months !== undefined ||
+    duration.weeks !== undefined ||
+    (duration.days !== undefined && duration.days > 3)
 
   return {
     isOverdue,
