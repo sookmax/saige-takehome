@@ -18,13 +18,21 @@ import {
   TableRow,
 } from './table'
 import { format, formatDuration, intervalToDuration } from 'date-fns'
-import { TODAY_MIDNIGHT } from '@/lib/const'
+import { SEARCH_PARAMS, TODAY_MIDNIGHT } from '@/lib/const'
 import { getPageIndices } from '@/lib/pagination'
 import { Button } from './button'
 import { cn } from '@/lib/utils'
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
+import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  CircleXIcon,
+  SearchIcon,
+} from 'lucide-react'
 import { Checkbox } from './checkbox'
 import { Label } from './label'
+import { Input } from './input'
+import { useEffect } from 'react'
 
 const meta: Meta = {
   title: 'Table',
@@ -72,6 +80,7 @@ const columns: ColumnDef<ToDo>[] = [
     accessorKey: 'text',
     header: 'Task',
     enableSorting: false,
+    filterFn: 'includesString',
   },
   {
     accessorKey: 'deadline',
@@ -93,7 +102,7 @@ const columns: ColumnDef<ToDo>[] = [
         rowB.getValue<ToDo['deadline']>('deadline')
       )
     },
-    filterFn: (row, _columnId, filterValue) => {
+    filterFn: (row, _columnId, filterValue: string[]) => {
       const date = new Date(row.getValue<ToDo['deadline']>('deadline'))
       date.setHours(0, 0, 0, 0)
 
@@ -149,7 +158,7 @@ const columns: ColumnDef<ToDo>[] = [
   {
     accessorKey: 'done',
     header: 'Status',
-    filterFn: (row, _columnId, filterValue) => {
+    filterFn: (row, _columnId, filterValue: string[]) => {
       const done = row.getValue<ToDo['done']>('done')
       let isMatch = false
       if (filterValue.includes('done')) {
@@ -196,6 +205,10 @@ function DataTable<TData, TValue>({
       ],
       columnFilters: [
         {
+          id: 'text',
+          value: SEARCH_PARAMS.get('q') || '',
+        },
+        {
           id: 'time-left',
           value: ['in-3-days'],
         },
@@ -216,6 +229,22 @@ function DataTable<TData, TValue>({
     currentPageIndex,
     5
   )
+
+  const textFilter = columnFilters.find((filter) => filter.id === 'text')
+  const textFilterValue = (textFilter?.value ?? '') as string
+  console.log('textFilterValue', textFilterValue)
+  useEffect(() => {
+    if (!textFilterValue) {
+      SEARCH_PARAMS.delete('q')
+    } else {
+      SEARCH_PARAMS.set('q', textFilterValue)
+    }
+    window.history.replaceState(
+      {},
+      '',
+      `${window.location.pathname}?${SEARCH_PARAMS.toString()}`
+    )
+  }, [textFilterValue])
 
   const timeLeftFilter = columnFilters.find(
     (filter) => filter.id === 'time-left'
@@ -331,21 +360,57 @@ function DataTable<TData, TValue>({
           <Button
             variant="link"
             className="text-xs p-0"
-            onClick={() => table.resetColumnFilters(true)}
+            onClick={() => {
+              table.setColumnFilters((old) => {
+                const textFilter = old.find((filter) => filter.id === 'text')
+                if (!textFilter) return []
+                return [textFilter]
+              })
+            }}
           >
             Clear filters
           </Button>
         </div>
       </div>
       <div className="grow flex flex-col space-y-2">
-        <div className={cn(rowsSelected.length > 0 ? 'visible' : 'invisible')}>
-          <Button
-            variant="destructive"
-            className="text-xs py-1 px-2 h-auto transition-none"
+        <div className="flex items-center justify-between space-x-2">
+          <div className="relative min-w-md">
+            <div className="absolute top-1/2 left-3 -translate-y-1/2 text-ring">
+              <SearchIcon className="size-4" />
+            </div>
+            <Input
+              className="px-9 shadow-none"
+              placeholder="Search tasks..."
+              value={textFilterValue}
+              onChange={(e) => {
+                table.getColumn('text')?.setFilterValue(e.target.value)
+              }}
+            />
+            <div
+              className={cn(
+                'absolute top-1/2 right-1 -translate-y-1/2 text-ring',
+                textFilterValue ? 'visible' : 'invisible'
+              )}
+            >
+              <button
+                className="cursor-pointer p-2"
+                onClick={() => table.getColumn('text')?.setFilterValue('')}
+              >
+                <CircleXIcon className="size-4 opacity-50" />
+              </button>
+            </div>
+          </div>
+          <div
+            className={cn(rowsSelected.length > 0 ? 'visible' : 'invisible')}
           >
-            Delete {rowsSelected.length} row
-            {rowsSelected.length > 1 ? 's' : ''}
-          </Button>
+            <Button
+              variant="destructive"
+              className="text-xs transition-none h-auto px-3 py-2"
+            >
+              Delete {rowsSelected.length} row
+              {rowsSelected.length > 1 ? 's' : ''}
+            </Button>
+          </div>
         </div>
         <div className="rounded-md border">
           <Table>
