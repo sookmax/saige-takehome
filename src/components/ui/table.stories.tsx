@@ -35,6 +35,12 @@ import { Input } from './input'
 import { useEffect } from 'react'
 import { Badge } from './badge'
 import { DurationFromToday, getDurationFromToday } from '@/lib/duration'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './tooltip'
 
 const meta: Meta = {
   title: 'Table',
@@ -44,7 +50,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const mockData: ToDo[] = []
-for (let i = 0; i < 50; i++) {
+for (let i = 0; i < AI_GENERATED_TODO_TITLES.length; i++) {
   mockData.push({
     id: i,
     text: AI_GENERATED_TODO_TITLES[i],
@@ -96,7 +102,18 @@ const columns: ColumnDef<ToDo>[] = [
     filterFn: 'includesString',
     cell: ({ getValue }) => {
       const text = getValue<ToDo['text']>()
-      return <div className="font-medium truncate">{text}</div>
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger className="w-full font-medium truncate text-left">
+              {text}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{text}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )
     },
   },
   {
@@ -124,23 +141,33 @@ const columns: ColumnDef<ToDo>[] = [
         isDueIn4PlusDays,
         duration,
       } = getValue<DurationFromToday>()
+      const text =
+        isOverdue && done
+          ? 'Completed'
+          : isOverdue && !done
+          ? 'Overdue'
+          : isDueToday
+          ? 'Due today'
+          : `Due in ${formatDuration(duration)}`
       return (
-        <div
-          className={cn(
-            'truncate',
-            isOverdue && !done && 'text-destructive',
-            isDueIn3Days && 'text-warning-foreground',
-            isDueIn4PlusDays && 'text-safe-foreground'
-          )}
-        >
-          {isOverdue && done
-            ? '-'
-            : isOverdue && !done
-            ? 'Overdue'
-            : isDueToday
-            ? 'Due today'
-            : `Due in ${formatDuration(duration)}`}
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger
+              className={cn(
+                'w-full truncate text-left',
+                isOverdue && !done && 'text-destructive',
+                isOverdue && done && 'text-done-foreground',
+                isDueIn3Days && 'text-warning-foreground',
+                isDueIn4PlusDays && 'text-safe-foreground'
+              )}
+            >
+              {text}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{text}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )
     },
     accessorFn: ({ deadline }) => {
