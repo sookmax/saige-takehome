@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { getPageIndices } from '../src/lib/pagination'
 
-const testCases: [number, (number | '...')[]][] = [
+const TEST_CASES: [number, (number | '...')[]][] = [
   [0, [0, 1, 2, 3, 4, '...', 13]],
   [1, [0, 1, 2, 3, 4, '...', 13]],
   [2, [0, 1, 2, 3, 4, '...', 13]],
@@ -18,7 +18,7 @@ const testCases: [number, (number | '...')[]][] = [
   [13, [0, '...', 9, 10, 11, 12, 13]],
 ]
 
-testCases.forEach(([currentIndex, expected]) => {
+TEST_CASES.forEach(([currentIndex, expected]) => {
   test(`should produce the correct list of page indices when current page index is ${currentIndex}`, () => {
     const pageIndices = getPageIndices(0, 13, currentIndex, 5)
     expect(pageIndices).toEqual(expected)
