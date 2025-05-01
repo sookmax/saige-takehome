@@ -21,7 +21,7 @@ import { DurationFromToday, getDurationFromToday } from '@/lib/duration'
 import { cn } from '@/lib/utils'
 import { Badge } from './ui/badge'
 import { getPageIndices } from '@/lib/pagination'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 import { Button } from './ui/button'
 import {
   ArrowDownIcon,
@@ -30,7 +30,6 @@ import {
   CircleXIcon,
   SearchIcon,
 } from 'lucide-react'
-import { Input } from './ui/input'
 import {
   Table,
   TableBody,
@@ -40,6 +39,7 @@ import {
   TableRow,
 } from './ui/table'
 import { TaskTableFilter } from './TaskTableFilter'
+import { DebouncedInput } from './DebouncedInput'
 
 const columnHelper = createColumnHelper<ToDo>()
 
@@ -88,7 +88,7 @@ const COLUMN_TASK = columnHelper.accessor('text', {
           <TooltipTrigger className="w-full font-medium truncate text-left">
             {text}
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent align="start">
             <p>{text}</p>
           </TooltipContent>
         </Tooltip>
@@ -147,7 +147,7 @@ const COLUMN_TIME_LEFT = columnHelper.accessor(
             >
               {text}
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent align="start">
               <p>{text}</p>
             </TooltipContent>
           </Tooltip>
@@ -290,15 +290,15 @@ export function TaskTable({ data }: TaskTableProps) {
   const textFilter = columnFilters.find((filter) => filter.id === 'text')
   const textFilterValue = (textFilter?.value ?? '') as string
 
-  const timeoutIdRef = useRef<number | undefined>()
+  const onSearchInputChange = useCallback(
+    (value: string) => {
+      table.getColumn('text')?.setFilterValue(value)
+    },
+    [table]
+  )
 
   useEffect(() => {
-    if (timeoutIdRef.current !== undefined) {
-      clearTimeout(timeoutIdRef.current)
-    }
-    timeoutIdRef.current = window.setTimeout(() => {
-      UPDATE_SEARCH_PARAM(SEARCH_PARAM_KEY_FOR_SEARCH_TEXT, textFilterValue)
-    }, 500)
+    UPDATE_SEARCH_PARAM(SEARCH_PARAM_KEY_FOR_SEARCH_TEXT, textFilterValue)
   }, [textFilterValue])
 
   const rowsSelected = table.getSelectedRowModel().rows
@@ -327,13 +327,11 @@ export function TaskTable({ data }: TaskTableProps) {
             <div className="absolute top-1/2 left-3 -translate-y-1/2 text-ring">
               <SearchIcon className="size-4" />
             </div>
-            <Input
+            <DebouncedInput
               className="px-9 shadow-none"
               placeholder="Search tasks..."
               value={textFilterValue}
-              onChange={(e) => {
-                table.getColumn('text')?.setFilterValue(e.target.value)
-              }}
+              onChange={onSearchInputChange}
             />
             <div
               className={cn(
