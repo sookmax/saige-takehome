@@ -28,16 +28,6 @@ import { Label } from './label'
 
 const meta: Meta = {
   title: 'Table',
-  parameters: {
-    // layout: 'centered',
-  },
-  decorators: [
-    (Story) => (
-      //   <div className="w-screen">
-      <Story />
-      //   </div>
-    ),
-  ],
 }
 
 export default meta
@@ -57,6 +47,27 @@ for (let i = 0; i < 100; i++) {
 }
 
 const columns: ColumnDef<ToDo>[] = [
+  {
+    id: 'select',
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && 'indeterminate')
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+  },
   {
     accessorKey: 'text',
     header: 'Task',
@@ -196,7 +207,9 @@ function DataTable<TData, TValue>({
     },
   })
 
-  const { pageIndex: currentPageIndex } = table.getState().pagination
+  const { pagination, columnFilters } = table.getState()
+
+  const { pageIndex: currentPageIndex } = pagination
   const pageIndices = getPageIndices(
     0,
     table.getPageCount() - 1,
@@ -204,17 +217,14 @@ function DataTable<TData, TValue>({
     5
   )
 
-  const timeLeftFilter = table
-    .getState()
-    .columnFilters.find((filter) => filter.id === 'time-left')?.value as
-    | string[]
-    | undefined
+  const timeLeftFilter = columnFilters.find(
+    (filter) => filter.id === 'time-left'
+  )?.value as string[] | undefined
 
-  const statusFilter = table
-    .getState()
-    .columnFilters.find((filter) => filter.id === 'done')?.value as
-    | string[]
-    | undefined
+  const statusFilter = columnFilters.find((filter) => filter.id === 'done')
+    ?.value as string[] | undefined
+
+  const rowsSelected = table.getSelectedRowModel().rows
 
   return (
     <div className="flex space-x-10">
@@ -327,7 +337,16 @@ function DataTable<TData, TValue>({
           </Button>
         </div>
       </div>
-      <div className="grow flex flex-col space-y-4">
+      <div className="grow flex flex-col space-y-2">
+        <div className={cn(rowsSelected.length > 0 ? 'visible' : 'invisible')}>
+          <Button
+            variant="destructive"
+            className="text-xs py-1 px-2 h-auto transition-none"
+          >
+            Delete {rowsSelected.length} row
+            {rowsSelected.length > 1 ? 's' : ''}
+          </Button>
+        </div>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -409,7 +428,7 @@ function DataTable<TData, TValue>({
                 variant={pageIndex === currentPageIndex ? 'default' : 'outline'}
                 size="icon"
                 onClick={() => table.setPageIndex(pageIndex)}
-                className="h-8 w-8"
+                className="h-8 w-8 transition-none"
               >
                 {pageIndex + 1}
               </Button>
