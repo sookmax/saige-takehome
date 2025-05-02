@@ -14,16 +14,8 @@ import { format, formatDuration } from 'date-fns'
 import { DurationFromToday, getDurationFromToday } from '@/lib/duration'
 import { cn } from '@/lib/utils'
 import { Badge } from './ui/badge'
-import { getPageIndices } from '@/lib/pagination'
-import { useCallback, useEffect } from 'react'
 import { Button } from './ui/button'
-import {
-  ArrowDownIcon,
-  ArrowUpDownIcon,
-  ArrowUpIcon,
-  CircleXIcon,
-  SearchIcon,
-} from 'lucide-react'
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -33,8 +25,13 @@ import {
   TableRow,
 } from './ui/table'
 import { TaskTableFilter } from './TaskTableFilter'
-import { DebouncedInput } from './DebouncedInput'
 import { OverflowTooltip } from './OverflowTooltip'
+import {
+  SEARCH_PARAM_KEY_FOR_SEARCH_TEXT,
+  SEARCH_PARAMS,
+  TaskTableSearchInput,
+} from './TaskTableSearchInput'
+import { TaskTablePagination } from './TaskTablePagination'
 
 const columnHelper = createColumnHelper<ToDo>()
 
@@ -200,23 +197,6 @@ const COLUMNS = [
   COLUMN_STATUS,
 ]
 
-const SEARCH_PARAMS = new URLSearchParams(window.location.search)
-const SEARCH_PARAM_KEY_FOR_SEARCH_TEXT = 'q'
-const UPDATE_SEARCH_PARAM = (key: string, value: string) => {
-  if (!value) {
-    SEARCH_PARAMS.delete(key)
-  } else {
-    SEARCH_PARAMS.set(key, value)
-  }
-  window.history.replaceState(
-    {},
-    '',
-    `${window.location.pathname}${
-      SEARCH_PARAMS.toString() ? `?${SEARCH_PARAMS.toString()}` : ''
-    }`
-  )
-}
-
 const INITIAL_TABLE_STATE: InitialTableState = {
   pagination: {
     pageIndex: 0,
@@ -259,30 +239,6 @@ export function TaskTable({ data }: TaskTableProps) {
     initialState: INITIAL_TABLE_STATE,
   })
 
-  const { pagination, columnFilters } = table.getState()
-
-  const { pageIndex: currentPageIndex } = pagination
-  const pageIndices = getPageIndices(
-    0,
-    table.getPageCount() - 1,
-    currentPageIndex,
-    5
-  )
-
-  const textFilter = columnFilters.find((filter) => filter.id === 'text')
-  const textFilterValue = (textFilter?.value ?? '') as string
-
-  const onSearchInputChange = useCallback(
-    (value: string) => {
-      table.getColumn('text')?.setFilterValue(value)
-    },
-    [table]
-  )
-
-  useEffect(() => {
-    UPDATE_SEARCH_PARAM(SEARCH_PARAM_KEY_FOR_SEARCH_TEXT, textFilterValue)
-  }, [textFilterValue])
-
   const rowsSelected = table.getSelectedRowModel().rows
 
   return (
@@ -292,29 +248,8 @@ export function TaskTable({ data }: TaskTableProps) {
       </div>
       <div className="grow flex flex-col space-y-2">
         <div className="flex items-center justify-between space-x-2">
-          <div className="relative min-w-md">
-            <div className="absolute top-1/2 left-3 -translate-y-1/2 text-ring">
-              <SearchIcon className="size-4" />
-            </div>
-            <DebouncedInput
-              className="px-9 shadow-none"
-              placeholder="Search tasks..."
-              value={textFilterValue}
-              onChange={onSearchInputChange}
-            />
-            <div
-              className={cn(
-                'absolute top-1/2 right-1 -translate-y-1/2 text-ring',
-                textFilterValue ? 'visible' : 'invisible'
-              )}
-            >
-              <button
-                className="cursor-pointer p-2"
-                onClick={() => table.getColumn('text')?.setFilterValue('')}
-              >
-                <CircleXIcon className="size-4 opacity-50" />
-              </button>
-            </div>
+          <div className="min-w-md">
+            <TaskTableSearchInput table={table} />
           </div>
           <div
             className={cn(rowsSelected.length > 0 ? 'visible' : 'invisible')}
@@ -402,23 +337,7 @@ export function TaskTable({ data }: TaskTableProps) {
             </TableBody>
           </Table>
         </div>
-        <div className="space-x-1 flex justify-center">
-          {pageIndices.map((pageIndex, index) => {
-            return pageIndex === '...' ? (
-              <span key={`ellipsis-${index}`}>...</span>
-            ) : (
-              <Button
-                key={`page-${pageIndex}`}
-                variant={pageIndex === currentPageIndex ? 'default' : 'outline'}
-                size="icon"
-                onClick={() => table.setPageIndex(pageIndex)}
-                className="h-8 w-8 transition-none"
-              >
-                {pageIndex + 1}
-              </Button>
-            )
-          })}
-        </div>
+        <TaskTablePagination table={table} />
       </div>
     </div>
   )
