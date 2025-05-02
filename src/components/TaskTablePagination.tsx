@@ -2,6 +2,16 @@ import { Table } from '@tanstack/react-table'
 import { Button } from './ui/button'
 import { ToDo } from '@/types/api'
 import { getPageIndices } from '@/lib/pagination'
+import { Label } from './ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
+
+const PAGE_SIZE = [5, 10, 20]
 
 export function TaskTablePagination({ table }: { table: Table<ToDo> }) {
   const { pagination } = table.getState()
@@ -20,7 +30,7 @@ export function TaskTablePagination({ table }: { table: Table<ToDo> }) {
 
   return (
     <div className="flex items-center justify-between">
-      <div className="text-sm text-muted-foreground">
+      <div className="text-xs text-muted-foreground">
         {`Showing ${firstRowIndex + 1} to ${
           lastRowIndex + 1
         } of ${totalRowCount} results`}
@@ -41,6 +51,33 @@ export function TaskTablePagination({ table }: { table: Table<ToDo> }) {
             </Button>
           )
         })}
+      </div>
+      <div className="flex items-center space-x-2 text-muted-foreground">
+        <Label
+          htmlFor="page-size-select-trigger"
+          className="font-normal text-xs"
+        >
+          page size
+        </Label>
+        <Select
+          value={String(pageSize)}
+          onValueChange={(value) => table.setPageSize(Number(value))}
+        >
+          <SelectTrigger
+            id="page-size-select-trigger"
+            className="text-xs px-2 py-1"
+            size="sm"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PAGE_SIZE.map((size) => (
+              <SelectItem className="text-xs" key={size} value={String(size)}>
+                {size}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   )

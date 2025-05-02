@@ -27,8 +27,8 @@ function AppInner() {
 
   return (
     <>
-      <div className="min-h-screen max-w-[1000px] mx-auto flex flex-col items-center space-y-10">
-        <div className="flex items-center space-x-3 my-10">
+      <div className="min-h-screen max-w-[1000px] mx-auto py-10 flex flex-col items-center space-y-10">
+        <div className="flex items-center space-x-3 mb-10">
           <H1>What needs to be done?</H1>
           <Button
             size="icon"
