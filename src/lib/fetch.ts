@@ -44,3 +44,15 @@ export async function upsertTodo({ id, text, done, deadline }: TaskFormFields) {
   }
   return data as ToDo
 }
+
+export async function deleteTodo(id: number) {
+  const { code, message } = (await fetch(`/api/todos/${id}`, {
+    method: 'DELETE',
+  }).then((res) => res.json())) as APIResponse<void>
+
+  if (code !== 200) {
+    throw new Error(message)
+  }
+
+  return
+}

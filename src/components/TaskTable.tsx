@@ -32,9 +32,9 @@ import {
   TaskTableSearchInput,
 } from './TaskTableSearchInput'
 import { TaskTablePagination } from './TaskTablePagination'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Spinner } from './Spinner'
-import { getTodos } from '@/lib/fetch'
+import { deleteTodo, getTodos } from '@/lib/fetch'
 
 const columnHelper = createColumnHelper<ToDo>()
 
@@ -239,6 +239,8 @@ type TaskTableProps = {
 }
 
 export function TaskTable({ onRowClick }: TaskTableProps) {
+  const queryClient = useQueryClient()
+
   const { isPending, error, data } = useQuery({
     queryKey: ['todos'],
     queryFn: getTodos,
@@ -258,6 +260,18 @@ export function TaskTable({ onRowClick }: TaskTableProps) {
 
   const rowsSelected = table.getSelectedRowModel().rows
 
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      for (const id of ids) {
+        await deleteTodo(id)
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] })
+      table.resetRowSelection()
+    },
+  })
+
   return (
     <div className="flex space-x-10 max-w-[1000px] mx-auto">
       <div className="shrink-0 flex flex-col mt-5">
@@ -273,10 +287,20 @@ export function TaskTable({ onRowClick }: TaskTableProps) {
           >
             <Button
               variant="destructive"
-              className="text-xs transition-none h-auto px-2 py-1.5"
+              className="text-xs transition-none w-[102px] h-auto px-2 py-1.5"
+              onClick={() => {
+                deleteMutation.mutate(
+                  rowsSelected.map((row) => row.original.id)
+                )
+              }}
             >
-              Delete {rowsSelected.length} row
-              {rowsSelected.length > 1 ? 's' : ''}
+              {deleteMutation.isPending ? (
+                <Spinner className="size-4 text-primary-foreground" />
+              ) : (
+                `Delete ${rowsSelected.length} row${
+                  rowsSelected.length > 1 ? 's' : ''
+                }`
+              )}
             </Button>
           </div>
         </div>
