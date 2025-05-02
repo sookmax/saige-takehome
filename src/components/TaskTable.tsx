@@ -60,7 +60,11 @@ const COLUMN_SELECT = columnHelper.display({
     </div>
   ),
   cell: ({ row }) => (
-    <div className="flex items-center justify-center">
+    <div
+      className="flex items-center justify-center"
+      // shouldn't trigger row click
+      onClick={(e) => e.stopPropagation()}
+    >
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
