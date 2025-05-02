@@ -287,21 +287,8 @@ export function TaskTable({ data }: TaskTableProps) {
 
   return (
     <div className="flex space-x-10 max-w-[1000px] mx-auto">
-      <div className="shrink-0 flex flex-col space-y-4 mt-5">
+      <div className="shrink-0 flex flex-col mt-5">
         <TaskTableFilter table={table} />
-        <Button
-          variant="link"
-          className="text-xs p-0"
-          onClick={() => {
-            table.setColumnFilters((old) => {
-              const textFilter = old.find((filter) => filter.id === 'text')
-              if (!textFilter) return []
-              return [textFilter]
-            })
-          }}
-        >
-          Clear filters
-        </Button>
       </div>
       <div className="grow flex flex-col space-y-2">
         <div className="flex items-center justify-between space-x-2">
@@ -334,7 +321,7 @@ export function TaskTable({ data }: TaskTableProps) {
           >
             <Button
               variant="destructive"
-              className="text-xs transition-none h-auto px-3 py-2"
+              className="text-xs transition-none h-auto px-2 py-1.5"
             >
               Delete {rowsSelected.length} row
               {rowsSelected.length > 1 ? 's' : ''}
