@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { TaskForm } from './TaskForm'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 
@@ -13,12 +13,23 @@ export function TaskFormDialog({
   onOpenChange,
   initialValues,
 }: TaskFormDialogProps) {
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false)
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        if (isFormSubmitting) return
+        onOpenChange?.(open)
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogTitle>Task</DialogTitle>
         <div>
-          <TaskForm initialValues={initialValues} />
+          <TaskForm
+            initialValues={initialValues}
+            onMutationSuccess={() => onOpenChange?.(false)}
+            onPendingChange={setIsFormSubmitting}
+          />
         </div>
       </DialogContent>
     </Dialog>

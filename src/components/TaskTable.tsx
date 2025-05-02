@@ -1,4 +1,4 @@
-import { APIResponse, ToDo } from '@/types/api'
+import { ToDo } from '@/types/api'
 import {
   createColumnHelper,
   flexRender,
@@ -34,6 +34,7 @@ import {
 import { TaskTablePagination } from './TaskTablePagination'
 import { useQuery } from '@tanstack/react-query'
 import { Spinner } from './Spinner'
+import { getTodos } from '@/lib/fetch'
 
 const columnHelper = createColumnHelper<ToDo>()
 
@@ -236,16 +237,7 @@ type TaskTableProps = {
 export function TaskTable({ onRowClick }: TaskTableProps) {
   const { isPending, error, data } = useQuery({
     queryKey: ['todos'],
-    queryFn: async () => {
-      const { code, message, data } = (await fetch('/api/todos').then((res) =>
-        res.json()
-      )) as APIResponse<ToDo[]>
-      if (code !== 200) {
-        throw new Error(message)
-      }
-
-      return data
-    },
+    queryFn: getTodos,
   })
 
   const rows = data ?? []

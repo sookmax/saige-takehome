@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import {
@@ -15,40 +15,61 @@ import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import {
-  CalendarIcon,
-  CircleArrowUp,
-  CirclePlusIcon,
-  CircleXIcon,
-} from 'lucide-react'
+import { CalendarIcon, CircleArrowUp, CirclePlusIcon } from 'lucide-react'
 import { TODAY_MIDNIGHT } from '@/lib/const'
 import { DatePicker } from './DatePicker'
+import { Checkbox } from './ui/checkbox'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Spinner } from './Spinner'
+import { upsertTodo } from '@/lib/fetch'
 
 const TaskFormSchema = z.object({
   id: z.number().optional(),
   text: z
     .string()
     .trim()
-    .min(1, { message: 'Write something about this task.' }),
+    .min(1, { message: 'Write something descriptive about this task.' }),
   done: z.boolean().optional(),
-  deadline: z.date().nullable(),
+  deadline: z.date({
+    required_error: 'Without a deadline, a task would not be a task, would it?',
+  }),
 })
 
 export type TaskFormFields = z.infer<typeof TaskFormSchema>
 
 export function TaskForm({
   initialValues,
+  onMutationSuccess,
+  onPendingChange,
 }: {
   initialValues?: TaskFormFields
+  onMutationSuccess?: () => void
+  onPendingChange?: (pending: boolean) => void
 }) {
-  const type = initialValues?.id ? 'update' : 'create'
+  const queryClient = useQueryClient()
+
+  const upsertMutation = useMutation({
+    mutationFn: upsertTodo,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] })
+      onMutationSuccess?.()
+    },
+  })
+
+  // This is to temporarily disable closing of the dialog when the form is submitting
+  useEffect(() => {
+    onPendingChange?.(upsertMutation.isPending)
+  }, [upsertMutation.isPending, onPendingChange])
+
+  const formType = initialValues?.id !== undefined ? 'update' : 'create'
 
   const form = useForm<TaskFormFields>({
     resolver: zodResolver(TaskFormSchema),
     defaultValues: initialValues ?? {
       text: '',
-      deadline: null,
+      done: false,
     },
+    disabled: upsertMutation.isPending,
   })
 
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
@@ -57,9 +78,9 @@ export function TaskForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit((data: TaskFormFields) => {
-          console.log(data)
+          upsertMutation.mutate(data)
         })}
-        className="space-y-2"
+        className="space-y-3"
       >
         <FormField
           control={form.control}
@@ -104,6 +125,7 @@ export function TaskForm({
                     <Button
                       type="button"
                       variant={'outline'}
+                      disabled={field.disabled}
                       className={cn(
                         'w-full pl-3 text-left font-normal',
                         !field.value && 'text-muted-foreground'
@@ -118,24 +140,36 @@ export function TaskForm({
                     </Button>
                   </FormControl>
                 </DatePicker>
-                {field.value && (
-                  <button
-                    type="button"
-                    className="absolute top-1/2 -translate-y-1/2 right-8 cursor-pointer p-2"
-                    onClick={() => {
-                      field.onChange(null)
-                    }}
-                  >
-                    <CircleXIcon className="size-4 opacity-50" />
-                  </button>
-                )}
+                <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit">
-            {type === 'create' ? (
+          <FormField
+            control={form.control}
+            name="done"
+            render={({ field }) => (
+              <FormItem className="flex items-center space-x-1.5 gap-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={formType === 'create' || field.disabled}
+                  />
+                </FormControl>
+                <FormLabel>Done</FormLabel>
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="flex flex-col">
+          <Button type="submit" disabled={form.formState.disabled}>
+            {formType === 'create' ? (
               <>
-                <CirclePlusIcon className="size-5" />
+                {upsertMutation.isPending ? (
+                  <Spinner className="text-primary-foreground size-4" />
+                ) : (
+                  <CirclePlusIcon className="size-5" />
+                )}
                 <span>Add</span>
               </>
             ) : (
