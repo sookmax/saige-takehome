@@ -10,12 +10,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { Checkbox } from './ui/checkbox'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from './ui/tooltip'
 import { format, formatDuration } from 'date-fns'
 import { DurationFromToday, getDurationFromToday } from '@/lib/duration'
 import { cn } from '@/lib/utils'
@@ -40,6 +34,7 @@ import {
 } from './ui/table'
 import { TaskTableFilter } from './TaskTableFilter'
 import { DebouncedInput } from './DebouncedInput'
+import { OverflowTooltip } from './OverflowTooltip'
 
 const columnHelper = createColumnHelper<ToDo>()
 
@@ -83,16 +78,9 @@ const COLUMN_TASK = columnHelper.accessor('text', {
   cell: ({ getValue }) => {
     const text = getValue()
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger className="w-full font-medium truncate text-left">
-            {text}
-          </TooltipTrigger>
-          <TooltipContent align="start">
-            <p>{text}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <OverflowTooltip className="font-medium text-left" delayDuration={150}>
+        {text}
+      </OverflowTooltip>
     )
   },
 })
@@ -134,24 +122,18 @@ const COLUMN_TIME_LEFT = columnHelper.accessor(
           ? 'Due today'
           : `Due in ${formatDuration(duration)}`
       return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger
-              className={cn(
-                'w-full truncate text-left',
-                isOverdue && !done && 'text-destructive',
-                isOverdue && done && 'text-done-foreground',
-                isDueIn3Days && 'text-warning-foreground',
-                isDueIn4PlusDays && 'text-safe-foreground'
-              )}
-            >
-              {text}
-            </TooltipTrigger>
-            <TooltipContent align="start">
-              <p>{text}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <OverflowTooltip
+          className={cn(
+            'text-left',
+            isOverdue && !done && 'text-destructive',
+            isOverdue && done && 'text-done-foreground',
+            isDueIn3Days && 'text-warning-foreground',
+            isDueIn4PlusDays && 'text-safe-foreground'
+          )}
+          delayDuration={150}
+        >
+          {text}
+        </OverflowTooltip>
       )
     },
     sortingFn: (rowA, rowB) => {
