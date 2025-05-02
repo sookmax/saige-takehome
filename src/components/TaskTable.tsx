@@ -1,4 +1,4 @@
-import { ToDo } from '@/types/api'
+import { APIResponse, ToDo } from '@/types/api'
 import {
   createColumnHelper,
   flexRender,
@@ -32,6 +32,8 @@ import {
   TaskTableSearchInput,
 } from './TaskTableSearchInput'
 import { TaskTablePagination } from './TaskTablePagination'
+import { useQuery } from '@tanstack/react-query'
+import { Spinner } from './Spinner'
 
 const columnHelper = createColumnHelper<ToDo>()
 
@@ -228,13 +230,28 @@ const INITIAL_TABLE_STATE: InitialTableState = {
 }
 
 type TaskTableProps = {
-  data: ToDo[]
   onRowClick?: (row: ToDo) => void
 }
 
-export function TaskTable({ data, onRowClick }: TaskTableProps) {
+export function TaskTable({ onRowClick }: TaskTableProps) {
+  const { isPending, error, data } = useQuery({
+    queryKey: ['todos'],
+    queryFn: async () => {
+      const { code, message, data } = (await fetch('/api/todos').then((res) =>
+        res.json()
+      )) as APIResponse<ToDo[]>
+      if (code !== 200) {
+        throw new Error(message)
+      }
+
+      return data
+    },
+  })
+
+  const rows = data ?? []
+
   const table = useReactTable({
-    data,
+    data: rows,
     columns: COLUMNS,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -312,7 +329,32 @@ export function TaskTable({ data, onRowClick }: TaskTableProps) {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
+              {isPending || rows.length === 0 || error ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={COLUMNS.length}
+                    className="h-24 text-center"
+                  >
+                    {isPending ? (
+                      <div className="h-full flex items-center justify-center space-x-2">
+                        <span className="text-muted-foreground">
+                          Fetching tasks...
+                        </span>
+                        <Spinner className="size-4" />
+                      </div>
+                    ) : error ? (
+                      <div className="text-muted-foreground">
+                        <div>Something went wrong, see below</div>
+                        <div className="text-destructive font-medium">
+                          {error.message}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>No results.</div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ) : (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
@@ -332,15 +374,6 @@ export function TaskTable({ data, onRowClick }: TaskTableProps) {
                     ))}
                   </TableRow>
                 ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={COLUMNS.length}
-                    className="h-24 text-center"
-                  >
-                    No results.
-                  </TableCell>
-                </TableRow>
               )}
             </TableBody>
           </Table>

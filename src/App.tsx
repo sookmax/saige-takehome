@@ -1,27 +1,25 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { CirclePlusIcon } from 'lucide-react'
 import { Button } from './components/ui/button'
 import { H1 } from './components/ui/Typography'
 import { useState } from 'react'
 import { TaskFormDialog } from './components/TaskFormDialog'
 import { TaskTable } from './components/TaskTable'
-import { AI_GENERATED_TODO_TITLES } from './lib/const'
-import { ToDo } from './types/api'
 import { TaskFormFields } from './components/TaskForm'
 
-const mockData: ToDo[] = []
-for (let i = 0; i < AI_GENERATED_TODO_TITLES.length; i++) {
-  mockData.push({
-    id: i,
-    text: AI_GENERATED_TODO_TITLES[i],
-    deadline:
-      Math.random() > 0.5
-        ? Date.now() + 86400000 * i
-        : Date.now() - 86400000 * (i % 5),
-    done: Math.random() > 0.5,
-  })
-}
+const QUERY_CLIENT = new QueryClient()
 
 export function App() {
+  return (
+    <QueryClientProvider client={QUERY_CLIENT}>
+      <AppInner />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  )
+}
+
+function AppInner() {
   const [isTaskFormDialogOpen, setIsTaskFormDialogOpen] = useState(false)
   const [formInitialValues, setFormInitialValues] = useState<
     TaskFormFields | undefined
@@ -44,7 +42,6 @@ export function App() {
         </div>
         <div>
           <TaskTable
-            data={mockData}
             onRowClick={(row) => {
               setFormInitialValues({
                 id: row.id,

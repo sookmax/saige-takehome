@@ -19,7 +19,7 @@ const fetchToDos = (): ToDo[] => {
   }
 }
 
-const setToDos = (todos: ToDo[]) => {
+export const setToDos = (todos: ToDo[]) => {
   localStorage.setItem('todos', JSON.stringify(todos))
 }
 
