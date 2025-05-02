@@ -12,31 +12,41 @@ import {
 } from './ui/form'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Input } from './ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import { CalendarIcon, CirclePlusIcon, CircleXIcon } from 'lucide-react'
-import { Calendar } from './ui/calendar'
+import {
+  CalendarIcon,
+  CircleArrowUp,
+  CirclePlusIcon,
+  CircleXIcon,
+} from 'lucide-react'
 import { TODAY_MIDNIGHT } from '@/lib/const'
+import { DatePicker } from './DatePicker'
 
 const TaskFormSchema = z.object({
-  task: z
+  id: z.number().optional(),
+  text: z
     .string()
     .trim()
     .min(1, { message: 'Write something about this task.' }),
+  done: z.boolean().optional(),
   deadline: z.date().nullable(),
 })
+
+export type TaskFormFields = z.infer<typeof TaskFormSchema>
 
 export function TaskForm({
   initialValues,
 }: {
-  initialValues?: z.infer<typeof TaskFormSchema>
+  initialValues?: TaskFormFields
 }) {
-  const form = useForm<z.infer<typeof TaskFormSchema>>({
+  const type = initialValues?.id ? 'update' : 'create'
+
+  const form = useForm<TaskFormFields>({
     resolver: zodResolver(TaskFormSchema),
     defaultValues: initialValues ?? {
-      task: '',
+      text: '',
       deadline: null,
     },
   })
@@ -46,14 +56,14 @@ export function TaskForm({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((data: z.infer<typeof TaskFormSchema>) => {
+        onSubmit={form.handleSubmit((data: TaskFormFields) => {
           console.log(data)
         })}
         className="space-y-2"
       >
         <FormField
           control={form.control}
-          name="task"
+          name="text"
           render={({ field }) => (
             <FormItem>
               <VisuallyHidden>
@@ -78,43 +88,36 @@ export function TaskForm({
                 <VisuallyHidden>
                   <FormLabel>Deadline date</FormLabel>
                 </VisuallyHidden>
-                <Popover
+                <DatePicker
                   open={isDatePickerOpen}
                   onOpenChange={setIsDatePickerOpen}
+                  selected={field.value ?? undefined}
+                  onSelect={(date) => {
+                    field.onChange(date)
+                    setIsDatePickerOpen(false)
+                  }}
+                  disabled={(date) => date < TODAY_MIDNIGHT}
+                  defaultMonth={field.value ?? undefined}
+                  initialFocus
                 >
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        type="button"
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, 'yyyy-MM-dd')
-                        ) : (
-                          <span>Pick a deadline</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value ?? undefined}
-                      onSelect={(date) => {
-                        field.onChange(date)
-                        setIsDatePickerOpen(false)
-                      }}
-                      disabled={(date) => date < TODAY_MIDNIGHT}
-                      defaultMonth={field.value ?? undefined}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                  <FormControl>
+                    <Button
+                      type="button"
+                      variant={'outline'}
+                      className={cn(
+                        'w-full pl-3 text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, 'yyyy-MM-dd')
+                      ) : (
+                        <span>Pick a deadline</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </DatePicker>
                 {field.value && (
                   <button
                     type="button"
@@ -130,8 +133,17 @@ export function TaskForm({
             )}
           />
           <Button type="submit">
-            <CirclePlusIcon className="size-5" />
-            <span>Add</span>
+            {type === 'create' ? (
+              <>
+                <CirclePlusIcon className="size-5" />
+                <span>Add</span>
+              </>
+            ) : (
+              <>
+                <CircleArrowUp className="size-5" />
+                <span>Update</span>
+              </>
+            )}
           </Button>
         </div>
       </form>

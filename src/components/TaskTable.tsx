@@ -75,7 +75,10 @@ const COLUMN_TASK = columnHelper.accessor('text', {
   cell: ({ getValue }) => {
     const text = getValue()
     return (
-      <OverflowTooltip className="font-medium text-left" delayDuration={150}>
+      <OverflowTooltip
+        className="font-medium text-left cursor-pointer"
+        delayDuration={150}
+      >
         {text}
       </OverflowTooltip>
     )
@@ -121,7 +124,7 @@ const COLUMN_TIME_LEFT = columnHelper.accessor(
       return (
         <OverflowTooltip
           className={cn(
-            'text-left',
+            'text-left cursor-pointer',
             isOverdue && !done && 'text-destructive',
             isOverdue && done && 'text-done-foreground',
             isDueIn3Days && 'text-warning-foreground',
@@ -226,9 +229,10 @@ const INITIAL_TABLE_STATE: InitialTableState = {
 
 type TaskTableProps = {
   data: ToDo[]
+  onRowClick?: (row: ToDo) => void
 }
 
-export function TaskTable({ data }: TaskTableProps) {
+export function TaskTable({ data, onRowClick }: TaskTableProps) {
   const table = useReactTable({
     data,
     columns: COLUMNS,
@@ -313,6 +317,10 @@ export function TaskTable({ data }: TaskTableProps) {
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
+                    className={cn(onRowClick && 'cursor-pointer')}
+                    onClick={() => {
+                      onRowClick?.(row.original)
+                    }}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
