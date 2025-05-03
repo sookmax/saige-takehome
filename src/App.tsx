@@ -31,6 +31,7 @@ function AppInner() {
         <div className="flex items-center space-x-3 mb-10">
           <H1>What needs to be done?</H1>
           <Button
+            aria-label="add task"
             size="icon"
             onClick={() => {
               setFormInitialValues(undefined)

@@ -1,5 +1,6 @@
 import { http, HttpResponse, PathParams } from 'msw'
 import { APIResponse, ToDo, ToDoRequest } from '../types/api'
+import { AI_GENERATED_TODO_TITLES } from '@/lib/const'
 
 const apiWrapper = <T>(data: T, code = 200, message = ''): APIResponse<T> => {
   return {
@@ -19,7 +20,7 @@ const fetchToDos = (): ToDo[] => {
   }
 }
 
-export const setToDos = (todos: ToDo[]) => {
+const setToDos = (todos: ToDo[]) => {
   localStorage.setItem('todos', JSON.stringify(todos))
 }
 
@@ -27,6 +28,23 @@ const getToDo = (id: number) => {
   const todos = fetchToDos()
   return todos.find((todo) => todo.id === id)
 }
+
+const INITIAL_TODOS: ToDo[] = []
+for (let i = 0; i < AI_GENERATED_TODO_TITLES.length; i++) {
+  INITIAL_TODOS.push({
+    id: i,
+    text: AI_GENERATED_TODO_TITLES[i],
+    deadline:
+      i < 10
+        ? Date.now() - 86400000 * (i % 5)
+        : i < 40
+        ? Date.now() + 86400000 * (i % 3)
+        : Date.now() + 86400000 * (i % 50),
+    done: i % 2 === 0,
+  })
+}
+
+setToDos(INITIAL_TODOS)
 
 export const handlers = [
   http.get('/api/todos', () => {
