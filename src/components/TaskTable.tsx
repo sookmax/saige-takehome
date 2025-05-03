@@ -305,7 +305,7 @@ export function TaskTable({ onRowClick }: TaskTableProps) {
           </div>
         </div>
         <div className="rounded-md border">
-          <Table className="table-fixed">
+          <Table aria-label="task-table" className="table-fixed">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -349,7 +349,7 @@ export function TaskTable({ onRowClick }: TaskTableProps) {
               ))}
             </TableHeader>
             <TableBody>
-              {isPending || rows.length === 0 || error ? (
+              {isPending || table.getRowModel().rows.length === 0 || error ? (
                 <TableRow>
                   <TableCell
                     colSpan={COLUMNS.length}

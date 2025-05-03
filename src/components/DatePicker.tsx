@@ -22,7 +22,11 @@ export function DatePicker({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent
+        aria-label="calendar-popover"
+        className="w-auto p-0"
+        align="start"
+      >
         <Calendar
           mode="single"
           selected={selected}

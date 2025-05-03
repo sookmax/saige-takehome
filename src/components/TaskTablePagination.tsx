@@ -31,9 +31,11 @@ export function TaskTablePagination({ table }: { table: Table<ToDo> }) {
   return (
     <div className="flex items-center justify-between">
       <div className="text-xs text-muted-foreground">
-        {`Showing ${firstRowIndex + 1} to ${
-          lastRowIndex + 1
-        } of ${totalRowCount} results`}
+        {totalRowCount === 0
+          ? '0 results'
+          : `Showing ${firstRowIndex + 1} to ${
+              lastRowIndex + 1
+            } of ${totalRowCount} results`}
       </div>
       <div className="space-x-1 flex justify-center">
         {pageIndices.map((pageIndex, index) => {
