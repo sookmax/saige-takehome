@@ -132,3 +132,25 @@ test('should be able to add / update / delete a task', async () => {
     .poll(() => document.querySelector('tbody > tr'))
     .toHaveTextContent('No results.')
 })
+
+test('should be able to select / unselect all tasks', async () => {
+  const screen = page.render(<App />)
+
+  await screen.getByRole('checkbox', { name: 'select all' }).click()
+
+  const rowCheckboxes = screen
+    .getByRole('checkbox', {
+      name: 'select row',
+    })
+    .all()
+
+  for (const checkbox of rowCheckboxes) {
+    expect(checkbox).toBeChecked()
+  }
+
+  await screen.getByRole('checkbox', { name: 'select all' }).click()
+
+  for (const checkbox of rowCheckboxes) {
+    expect(checkbox).not.toBeChecked()
+  }
+})
