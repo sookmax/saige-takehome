@@ -385,7 +385,7 @@ export function TaskTable({ onRowClick }: TaskTableProps) {
                     }}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell key={cell.id} aria-label={cell.column.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

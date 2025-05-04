@@ -44,6 +44,7 @@ export function TaskTablePagination({ table }: { table: Table<ToDo> }) {
           ) : (
             <Button
               key={`page-${pageIndex}`}
+              aria-label="pagination-button"
               variant={pageIndex === currentPageIndex ? 'default' : 'outline'}
               size="icon"
               onClick={() => table.setPageIndex(pageIndex)}
@@ -72,7 +73,7 @@ export function TaskTablePagination({ table }: { table: Table<ToDo> }) {
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent aria-label="page-size-select-popover">
             {PAGE_SIZE.map((size) => (
               <SelectItem className="text-xs" key={size} value={String(size)}>
                 {size}

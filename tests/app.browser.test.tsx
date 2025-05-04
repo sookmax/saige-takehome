@@ -1,8 +1,10 @@
+import 'vitest-browser-react' // brought this import here from setup file to make typescript happy 🤷‍♂️
 import React from 'react'
 import { App } from '../src/App'
 import { describe, expect, test } from 'vitest'
 import { page } from '@vitest/browser/context'
-import { addDays, format } from 'date-fns'
+import { addDays, differenceInDays, format } from 'date-fns'
+import { TODAY_MIDNIGHT } from '../src/lib/const'
 
 test('should be able to add / update / delete a task', async () => {
   const screen = page.render(<App />)
@@ -191,4 +193,149 @@ test('should be able to select / unselect all tasks', async () => {
   for (const checkbox of rowCheckboxes) {
     expect(checkbox).not.toBeChecked()
   }
+})
+
+describe('table filters', () => {
+  describe('due date filter', () => {
+    test('should be able to filter tasks by overdue', async () => {
+      const screen = page.render(<App />)
+
+      await screen.getByRole('checkbox', { name: 'overdue' }).click()
+
+      await expect
+        .poll(() => {
+          const timeLeftCellTexts = screen
+            .getByRole('cell', { name: 'time-left' })
+            .elements()
+            .map((el) => el.textContent)
+          const statusCellTexts = screen
+            .getByRole('cell', { name: 'done' })
+            .elements()
+            .map((el) => el.textContent)
+
+          const results: boolean[] = []
+          for (let i = 0; i < timeLeftCellTexts.length; i++) {
+            results.push(
+              ['Completed-Done', 'Overdue-In progress'].includes(
+                `${timeLeftCellTexts[i]}-${statusCellTexts[i]}`
+              )
+            )
+          }
+          return results.every((result) => result)
+        })
+        .toBe(true)
+    })
+
+    test('should be able to filter tasks by due in 3 days', async () => {
+      const screen = page.render(<App />)
+
+      await screen.getByRole('checkbox', { name: 'in 3 days' }).click()
+
+      await expect
+        .poll(() => {
+          const deadlineCellDates = screen
+            .getByRole('cell', { name: 'deadline' })
+            .elements()
+            .map((el) => new Date(el.textContent!))
+
+          return deadlineCellDates.every(
+            (date) =>
+              differenceInDays(date, TODAY_MIDNIGHT) >= 0 &&
+              differenceInDays(date, TODAY_MIDNIGHT) <= 3
+          )
+        })
+        .toBe(true)
+    })
+
+    test('should be able to filter tasks by due in more than 3 days', async () => {
+      const screen = page.render(<App />)
+
+      await screen.getByRole('checkbox', { name: 'in 4+ days' }).click()
+
+      await expect
+        .poll(() => {
+          const deadlineCellDates = screen
+            .getByRole('cell', { name: 'deadline' })
+            .elements()
+            .map((el) => new Date(el.textContent!))
+
+          return deadlineCellDates.every(
+            (date) => differenceInDays(date, TODAY_MIDNIGHT) >= 4
+          )
+        })
+        .toBe(true)
+    })
+  })
+
+  describe('status filter', () => {
+    test("should be able to filter tasks by 'In progress'", async () => {
+      const screen = page.render(<App />)
+
+      await screen.getByRole('checkbox', { name: 'in progress' }).click()
+
+      await expect
+        .poll(() => {
+          const statusCellTexts = screen
+            .getByRole('cell', { name: 'done' })
+            .elements()
+            .map((el) => el.textContent)
+
+          return statusCellTexts.every((text) => text === 'In progress')
+        })
+        .toBe(true)
+    })
+
+    test("should be able to filter tasks by 'Done'", async () => {
+      const screen = page.render(<App />)
+
+      await screen.getByRole('checkbox', { name: 'done' }).click()
+
+      await expect
+        .poll(() => {
+          const statusCellTexts = screen
+            .getByRole('cell', { name: 'done' })
+            .elements()
+            .map((el) => el.textContent)
+
+          return statusCellTexts.every((text) => text === 'Done')
+        })
+        .toBe(true)
+    })
+  })
+})
+
+describe('table pagination', () => {
+  test('should be able to change page size', async () => {
+    const screen = page.render(<App />)
+
+    const pageSizeSelect = screen.getByRole('combobox', {
+      name: 'page size',
+    })
+
+    for (const pageSize of [5, 10, 20]) {
+      await pageSizeSelect.click()
+
+      const pageSizeSelectListbox = screen.getByRole('listbox', {
+        name: 'page-size-select-popover',
+      })
+
+      await expect.element(pageSizeSelectListbox).toBeVisible()
+
+      await pageSizeSelectListbox
+        .getByRole('option', {
+          name: `${pageSize}`,
+        })
+        .click()
+      await expect.element(pageSizeSelectListbox).not.toBeInTheDocument()
+
+      expect(pageSizeSelect).toHaveTextContent(`${pageSize}`)
+
+      await expect
+        .poll(() => {
+          const tableRows = document.querySelectorAll('tbody > tr')
+          return tableRows.length
+        })
+        .toBe(pageSize)
+    }
+  })
 })
