@@ -1,6 +1,6 @@
 import React from 'react'
 import { App } from '../src/App'
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { page } from '@vitest/browser/context'
 import { addDays, format } from 'date-fns'
 
@@ -131,6 +131,44 @@ test('should be able to add / update / delete a task', async () => {
   await expect
     .poll(() => document.querySelector('tbody > tr'))
     .toHaveTextContent('No results.')
+})
+
+describe('search input', () => {
+  test('should be able to search tasks and the search keyword should persist in the url', async () => {
+    const screen = page.render(<App />)
+
+    const searchInput = screen.getByRole('textbox', { name: 'search tasks' })
+    await searchInput.fill('favicon')
+
+    await expect
+      .poll(() => {
+        const textCells = screen.getByRole('cell', { name: 'text' }).elements()
+        return textCells.every((cell) => cell.textContent?.includes('favicon'))
+      })
+      .toBe(true)
+
+    const url = new URL(window.location.href)
+    expect(url.searchParams.get('q')).toBe('favicon')
+  })
+
+  // turns out it's really hard to manipulate the `Location` object in vitest browser mode
+  // relevant issue: https://github.com/vitest-dev/vitest/issues/7424
+  test.skip('should be able to grab the search keyword from the url as initial value', async () => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('q', 'favicon')
+    expect(url.searchParams.get('q')).toBe('favicon') // even if this passes, the rendered app will not have the search param `q`
+
+    const screen = page.render(<App />)
+    const searchInput = screen.getByRole('textbox', { name: 'search tasks' })
+    expect(searchInput).toHaveValue('favicon')
+
+    await expect
+      .poll(() => {
+        const textCells = screen.getByRole('cell', { name: 'text' }).elements()
+        return textCells.every((cell) => cell.textContent?.includes('favicon'))
+      })
+      .toBe(true)
+  })
 })
 
 test('should be able to select / unselect all tasks', async () => {
