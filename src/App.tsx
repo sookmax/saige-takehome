@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { TaskFormDialog } from './components/TaskFormDialog'
 import { TaskTable } from './components/TaskTable'
 import { TaskFormFields } from './components/TaskForm'
+import { Toaster } from './components/ui/sonner'
 
 const QUERY_CLIENT = new QueryClient()
 
@@ -14,6 +15,7 @@ export function App() {
   return (
     <QueryClientProvider client={QUERY_CLIENT}>
       <AppInner />
+      <Toaster />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   )

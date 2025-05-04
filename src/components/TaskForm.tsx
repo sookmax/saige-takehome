@@ -22,6 +22,7 @@ import { Checkbox } from './ui/checkbox'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Spinner } from './Spinner'
 import { upsertTodo } from '@/lib/fetch'
+import { toast } from 'sonner'
 
 const TaskFormSchema = z.object({
   id: z.number().optional(),
@@ -46,12 +47,25 @@ export function TaskForm({
   onMutationSuccess?: () => void
   onPendingChange?: (pending: boolean) => void
 }) {
+  const formType = initialValues?.id !== undefined ? 'update' : 'create'
+
   const queryClient = useQueryClient()
 
   const upsertMutation = useMutation({
     mutationFn: upsertTodo,
-    onSuccess: () => {
+    onSuccess: (todo) => {
       queryClient.invalidateQueries({ queryKey: ['todos'] })
+      toast.success(
+        formType === 'create' ? (
+          <span>
+            Task: <strong>{todo.text}</strong> has been created.
+          </span>
+        ) : (
+          <span>
+            Task: <strong>{todo.text}</strong> has been updated.
+          </span>
+        )
+      )
       onMutationSuccess?.()
     },
   })
@@ -60,8 +74,6 @@ export function TaskForm({
   useEffect(() => {
     onPendingChange?.(upsertMutation.isPending)
   }, [upsertMutation.isPending, onPendingChange])
-
-  const formType = initialValues?.id !== undefined ? 'update' : 'create'
 
   const form = useForm<TaskFormFields>({
     resolver: zodResolver(TaskFormSchema),

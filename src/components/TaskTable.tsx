@@ -35,6 +35,7 @@ import { TaskTablePagination } from './TaskTablePagination'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Spinner } from './Spinner'
 import { deleteTodo, getTodos } from '@/lib/fetch'
+import { toast } from 'sonner'
 
 const columnHelper = createColumnHelper<ToDo>()
 
@@ -267,6 +268,13 @@ export function TaskTable({ onRowClick }: TaskTableProps) {
       }
     },
     onSuccess: () => {
+      rowsSelected.forEach((row) => {
+        toast.success(
+          <span>
+            Task: <strong>{row.original.text}</strong> has been deleted.
+          </span>
+        )
+      })
       queryClient.invalidateQueries({ queryKey: ['todos'] })
       table.resetRowSelection()
     },
