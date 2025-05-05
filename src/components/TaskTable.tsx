@@ -78,7 +78,6 @@ const COLUMN_SELECT = columnHelper.display({
 
 const COLUMN_TASK = columnHelper.accessor('text', {
   header: 'Task',
-  enableSorting: false,
   filterFn: 'includesString',
   cell: ({ getValue }) => {
     const text = getValue()
@@ -91,6 +90,7 @@ const COLUMN_TASK = columnHelper.accessor('text', {
       </OverflowTooltip>
     )
   },
+  sortDescFirst: false,
 })
 
 const COLUMN_DEADLINE = columnHelper.accessor('deadline', {
@@ -102,6 +102,7 @@ const COLUMN_DEADLINE = columnHelper.accessor('deadline', {
       <div className="text-muted-foreground">{format(date, 'yyyy-MM-dd')}</div>
     )
   },
+  sortDescFirst: false,
 })
 
 const COLUMN_TIME_LEFT = columnHelper.accessor(
@@ -168,6 +169,7 @@ const COLUMN_TIME_LEFT = columnHelper.accessor(
       }
       return isMatch
     },
+    sortDescFirst: false,
   }
 )
 
@@ -198,6 +200,7 @@ const COLUMN_STATUS = columnHelper.accessor('done', {
       </div>
     )
   },
+  sortDescFirst: false,
 })
 
 const COLUMNS = [
