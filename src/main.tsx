@@ -4,6 +4,14 @@ import { App } from './App.tsx'
 import './index.css'
 
 import { worker } from './mocks/browser.ts'
+import { INITIAL_TODOS } from './lib/const.ts'
+import { setToDos } from './mocks/handlers.ts'
+
+if (import.meta.env.VITE_INITIAL_DATA === 'true') {
+  setToDos(INITIAL_TODOS)
+} else {
+  setToDos([])
+}
 
 worker
   .start({

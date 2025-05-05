@@ -1,3 +1,5 @@
+import { ToDo } from '@/types/api'
+
 export const TODAY_MIDNIGHT = new Date()
 TODAY_MIDNIGHT.setHours(0, 0, 0, 0)
 
@@ -133,3 +135,18 @@ export const AI_GENERATED_TODO_TITLES = [
   'Fix wrong font in headings',
   'Apply correct font family and weight to heading tags for branding consistency',
 ]
+
+export const INITIAL_TODOS: ToDo[] = []
+for (let i = 0; i < AI_GENERATED_TODO_TITLES.length; i++) {
+  INITIAL_TODOS.push({
+    id: i,
+    text: AI_GENERATED_TODO_TITLES[i],
+    deadline:
+      i < 10
+        ? Date.now() - 86400000 * (i % 5)
+        : i < 40
+        ? Date.now() + 86400000 * (i % 3)
+        : Date.now() + 86400000 * (i % 50),
+    done: i % 2 === 0,
+  })
+}
