@@ -30,7 +30,7 @@
   - 현재 검색어 값을 지울 수 있는 x버튼이 인풋 오른쪽에 있습니다 
     - url search parameter의 `q`의 값도 지워집니다
     - 인풋값이 있을때만 x버튼이 보입니다
-- todo list table의 컬럼 정렬이 가능합니다 (text 제외)
+- todo list table의 컬럼 정렬이 가능합니다
   - default로 남은 기간을 표시해주는 컬럼인 `Time Left`가 오름 차순으로 정렬 되어 있습니다. 즉, 남은 시간이 적은 순서로 정렬 되어 있습니다
 - todo list table의 row들을 filter 할 수 있습니다
   - 남은 시간에 따라, '기한 지남 (Overdue)', '기한 3일 이내 (In 3 days)', '기한 3일 초과 (In 4+ days)'로 필터링 할 수 있습니다
