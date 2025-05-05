@@ -271,13 +271,24 @@ export function TaskTable({ onRowClick }: TaskTableProps) {
       }
     },
     onSuccess: () => {
-      rowsSelected.forEach((row) => {
-        toast.success(
-          <span>
-            Task: <strong>{row.original.text}</strong> has been deleted.
-          </span>
-        )
-      })
+      const firstRow = rowsSelected[0]
+      const count = rowsSelected.length
+      toast.success(
+        <span>
+          {count === 1 && (
+            <>
+              Task: <strong>{firstRow.original.text}</strong> has been deleted.
+            </>
+          )}
+          {count > 1 && (
+            <>
+              Task: <strong>{firstRow.original.text}</strong> and{' '}
+              <strong>{count - 1} more </strong>
+              task{count - 1 > 1 ? 's' : ''} have been deleted.
+            </>
+          )}
+        </span>
+      )
       queryClient.invalidateQueries({ queryKey: ['todos'] })
       table.resetRowSelection()
     },
